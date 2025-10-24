@@ -1,0 +1,21 @@
+name: emotionenv
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - numpy<2
+  - pandas
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - scipy
+  - librosa
+  - audioread
+  - pysoundfile
+  - pytorch
+  - torchaudio
+  - pip:
+      - jupyter
