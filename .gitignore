@@ -1,4 +1,10 @@
 data/
 *.wav
+*.ckpt
+*.pt
+
+*.npy
+*.pyc
+
 
 *.DS_Store
