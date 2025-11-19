@@ -2,9 +2,10 @@ data/
 *.wav
 *.ckpt
 *.pt
-
+*.npz
 *.npy
 *.pyc
+*.0
 
 
 *.DS_Store

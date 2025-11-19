@@ -2,6 +2,7 @@ import os, numpy as np, torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from model import MFCCMeanLinear, masked_mean
 from features import SERAudioDataset, collate_mfcc
@@ -51,16 +52,30 @@ def main():
     torch.manual_seed(SEED)
     os.makedirs(OUTDIR, exist_ok=True)
     os.makedirs("splits", exist_ok=True)
+    writer = SummaryWriter(log_dir=OUTDIR)
 
-    data = build_df_from_ravdess(DATA_ROOT)
-    print(data.head(), len(data))
+    df_cache = "splits/data_df.npy"
 
-    train_idx, val_idx, test_idx = stratified_splits(
+    if os.path.exists(df_cache):
+        data = np.load(df_cache, allow_pickle=True).item()
+        data = data["df"]
+    else:
+        df = build_df_from_ravdess(DATA_ROOT)
+        np.save(df_cache, {"df": df})
+        data = df
+
+    split_cache = "splits/split_indices.npz"
+
+    if os.path.exists(split_cache):
+        split_data = np.load(split_cache)
+        train_idx = split_data["train"]
+        val_idx   = split_data["val"]
+        test_idx  = split_data["test"]
+    else:
+        train_idx, val_idx, test_idx = stratified_splits(
         data, label_col="Emotion", test_size=0.2, val_size=0.1, seed=SEED
-    )
-    np.save("splits/train_idx.npy", train_idx)
-    np.save("splits/val_idx.npy",   val_idx)
-    np.save("splits/test_idx.npy",  test_idx)
+        )
+        np.savez(split_cache, train=train_idx, val=val_idx, test=test_idx)
 
     train_df = data.loc[train_idx].reset_index(drop=True)
     val_df   = data.loc[val_idx].reset_index(drop=True)
@@ -80,11 +95,28 @@ def main():
     opt = optim.Adam(model.parameters(), lr=LR)
     criterion = nn.CrossEntropyLoss()
 
+    checkpoint_latest = "checkpoints/latest.pt"
+    checkpoint_versions = "checkpoints/versions"
+    os.makedirs("checkpoints", exist_ok=True)
+    os.makedirs(checkpoint_versions, exist_ok=True)
+
+    start_epoch = 0
+
+    if os.path.exists(checkpoint_latest):
+        ckpt = torch.load(checkpoint_latest, map_location=device)
+        model.load_state_dict(ckpt["model_state"])
+        opt.load_state_dict(ckpt["optimizer_state"])
+        start_epoch = ckpt["epoch"]
+
+    
+    EPOCHS_PER_RUN = 10
+    end_epoch = start_epoch + EPOCHS_PER_RUN
+
     m, s = compute_train_norm(train_loader, n_mfcc=N_MFCC, device=device)
     torch.save({"mean": m.cpu(), "std": s.cpu()}, os.path.join(OUTDIR, "norm.pt"))
 
     best_val_acc = 0.0
-    for epoch in range(EPOCHS):
+    for epoch in range(start_epoch, end_epoch):
         model.train()
         total, correct, running_loss = 0, 0, 0.0
         for xb, lengths, yb, _ in train_loader:
@@ -107,16 +139,40 @@ def main():
         train_acc  = correct / total
         val_loss, val_acc = eval_loop(model, val_loader, device, criterion, m, s)
 
+        writer.add_scalar("Loss/train", train_loss, epoch)
+        writer.add_scalar("Loss/val", val_loss, epoch)
+        writer.add_scalar("Acc/train", train_acc, epoch)
+        writer.add_scalar("Acc/val", val_acc, epoch)
+
         print(f"epoch {epoch+1:02d} | train loss {train_loss:.4f} | train acc {train_acc:.3f} | "
               f"val loss {val_loss:.4f} | val acc {val_acc:.3f}")
+        
+        checkpoint = {
+            "epoch": epoch + 1,
+            "model_state": model.state_dict(),
+            "optimizer_state": opt.state_dict()
+        }
+
+        torch.save(checkpoint, checkpoint_latest)
 
         if val_acc >= best_val_acc:
             best_val_acc = val_acc
-            torch.save(
-                {"state_dict": model.state_dict(), "n_mfcc": N_MFCC, "n_classes": 8},
-                os.path.join(OUTDIR, "best.ckpt"),
-            )
+            best_model = {
+                "state_dict": model.state_dict(),
+                "n_mfcc": N_MFCC,
+                "n_classes": 8,
+                "epoch": epoch + 1,
+                "val_acc": val_acc
+            }
 
+            # overwrite the main best ckpt
+            torch.save(best_model, os.path.join(OUTDIR, "best.ckpt"))
+
+            # save all historical bests
+            hist_path = os.path.join(checkpoint_versions, f"best_epoch_{epoch+1}_acc_{val_acc:.3f}.pt")
+            torch.save(best_model, hist_path)
+
+    writer.close()
     best_ckpt = torch.load(os.path.join(OUTDIR, "best.ckpt"), map_location=device)
     model.load_state_dict(best_ckpt["state_dict"])
     test_loss, test_acc = eval_loop(model, test_loader, device, criterion, m, s)
