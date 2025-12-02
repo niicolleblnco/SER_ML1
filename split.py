@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 def stratified_splits(labels, label_col=None, test_size=0.2, val_size=0.1, seed=42):
-    y = labels  # already a NumPy array
+    y = labels 
 
     idx = np.arange(len(y))
 
