@@ -7,22 +7,21 @@ import argparse
 from tqdm import tqdm
 import subprocess
 
-
 from transformer_model import SmallTransformerSER
-from collate_transformer import collate_transformer, collate_transformer_eval
+from collate_transformer import collate_transformer_train, collate_transformer_eval
 from split import stratified_splits
 
 EPOCHS      = 40
 BATCH_SIZE  = 8
 LR          = 1e-3
-OUTDIR      = "runs/exp_transformer1"
 SEED        = 42
-N_CLASSES = 8
+N_CLASSES = 6
 
 def get_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--epochs", type=int, default=10)
-    return ap.parse_args()
+    ap.add_argument("--epochs", type=int, default=EPOCHS)
+    ap.add_argument("--outdir", type=str, default="runs/exp1")
+    return ap.parse_args() 
 
 
 def eval_loop(model, loader, device, criterion):
@@ -46,23 +45,22 @@ def eval_loop(model, loader, device, criterion):
 
 def main():
     args = get_args()
-    total_epochs_requested = args.epochs
 
     torch.manual_seed(SEED)
-    os.makedirs(OUTDIR, exist_ok=True)
-    os.makedirs("checkpoints_tr1", exist_ok=True)
-    os.makedirs("checkpoints_tr1/versions", exist_ok=True)
-    writer = SummaryWriter(log_dir=OUTDIR)
+    os.makedirs(args.outdir, exist_ok=True)
+    history_dir = os.path.join(args.outdir, "versions")
+    os.makedirs(history_dir, exist_ok=True)
+    writer = SummaryWriter(log_dir=args.outdir)
 
-    if not os.path.exists("precomputed_mfcc.npz"):
+    MFCC_PATH = "data/features/precomputed_mfcc.npz"
+    if not os.path.exists(MFCC_PATH):
         print("precomputed_mfcc.npz not found. Extracting MFCC sequences...")
-        subprocess.run(["python", "extract_mfcc_sequence.py"], check=True)
-    data = np.load("precomputed_mfcc.npz", allow_pickle=True)
-    mfcc_list = data["mfccs"]
-    labels = data["labels"]
+    data = np.load(MFCC_PATH, allow_pickle=True)
+    mfcc_list = torch.tensor(data["mfccs"], dtype=torch.float32)
+    labels = torch.tensor(data["labels"], dtype=torch.long)
     
     idx_train, idx_val, idx_test = stratified_splits(
-        labels, label_col=None, test_size=0.2, val_size=0.1, seed=SEED
+        labels, test_size=0.2, val_size=0.1, seed=SEED
     )
 
     train_data = [(mfcc_list[i], int(labels[i])) for i in idx_train]
@@ -70,7 +68,7 @@ def main():
     test_data  = [(mfcc_list[i], int(labels[i])) for i in idx_test]
 
     train_loader = DataLoader(
-        train_data, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collate_transformer
+        train_data, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collate_transformer_train
     )
     val_loader = DataLoader(
         val_data, batch_size=BATCH_SIZE, shuffle=False, collate_fn=collate_transformer_eval
@@ -83,24 +81,26 @@ def main():
 
     n_mfcc = mfcc_list[0].shape[1]
     model = SmallTransformerSER(n_mfcc=n_mfcc, n_classes=N_CLASSES).to(device)
-
     opt = optim.Adam(model.parameters(), lr=LR)
     criterion = nn.CrossEntropyLoss()
 
-    checkpoint_latest = "checkpoints_tr1/latest.pt"
-    start_epoch = 0
+    best_ckpt_path = os.path.join(args.outdir, "best.ckpt")
 
-    if os.path.exists(checkpoint_latest):
-        print("Resuming training from latest checkpoint...")
-        ckpt = torch.load(checkpoint_latest, map_location=device)
-        model.load_state_dict(ckpt["model_state"])
-        opt.load_state_dict(ckpt["optimizer_state"])
+    if os.path.exists(best_ckpt_path):
+        print("Loading previous best checkpoint...")
+        ckpt = torch.load(best_ckpt_path, map_location=device)
+        model.load_state_dict(ckpt["state_dict"])
         start_epoch = ckpt["epoch"]
-        print(f"Resumed from epoch {start_epoch}")
+        best_val_acc = ckpt["val_acc"]
+        print(f"Continuing training from epoch {start_epoch}")
+    else:
+        start_epoch = 0
+        best_val_acc = 0.0
 
     best_val_acc = 0.0
 
-    for epoch in range(start_epoch, total_epochs_requested):
+    end_epoch = start_epoch + args.epochs
+    for epoch in range(start_epoch, end_epoch):
         model.train()
         running_loss, correct, total = 0.0, 0, 0
 
@@ -134,34 +134,32 @@ def main():
               f"train loss {train_loss:.4f} | train acc {train_acc:.3f} | "
               f"val loss {val_loss:.4f} | val acc {val_acc:.3f}")
         
-        checkpoint = {
-        "epoch": epoch + 1,
-        "model_state": model.state_dict(),
-        "optimizer_state": opt.state_dict()
-        }
-        torch.save(checkpoint, checkpoint_latest)
+        TARGET_ACC = 0.6
+        if val_acc >= TARGET_ACC:
+            print("Target accuracy reached, stopping early.")
+            torch.save(
+                model.state_dict(),
+                os.path.join(args.outdir, "early_stop.pt")
+            )
+            break
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-
             best_model = {
                 "state_dict": model.state_dict(),
                 "val_acc": val_acc,
                 "epoch": epoch + 1
             }
+            torch.save(best_model, os.path.join(args.outdir, "best.ckpt"))
 
-            torch.save(best_model, os.path.join(OUTDIR, "best.ckpt"))
-
-            hist_path = f"checkpoints_tr1/versions/best_epoch_{epoch+1}_acc_{val_acc:.3f}.pt"
+            hist_path = os.path.join(history_dir, f"best_epoch_{epoch+1}_acc_{val_acc:.3f}.pt")
             torch.save(best_model, hist_path)
 
-    best = torch.load(os.path.join(OUTDIR, "best.ckpt"), map_location=device)
+    best = torch.load(os.path.join(args.outdir, "best.ckpt"), map_location=device)
     model.load_state_dict(best["state_dict"])
 
     test_loss, test_acc = eval_loop(model, test_loader, device, criterion)
     print(f"TEST | loss {test_loss:.4f} | acc {test_acc:.3f}")
-
-    
 
     writer.close()
 

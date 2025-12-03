@@ -10,7 +10,7 @@ class RotaryPositionalEncoding(nn.Module):
         self.d_model = d_model
         self.max_len = max_len
 
-        dim = torch.arange(0, d_model, 2, d_type=torch.float32)
+        dim = torch.arange(0, d_model, 2, dtype=torch.float32)
 
         inv_freq = 1.0 /(1000 ** (dim / d_model))
 
@@ -41,13 +41,13 @@ class RotaryPositionalEncoding(nn.Module):
         return out
 
 class SmallTransformerSER(nn.Module):
-    def __init__(self, n_mfcc=20, d_model=128, n_heads=4, num_layers=2, n_classes=8):
+    def __init__(self, n_mfcc=20, d_model=128, n_heads=4, num_layers=2, n_classes=6):
         super().__init__()
         if d_model % 2 != 0:
             raise ValueError("d_model must be even for RoPE")
         
-        self.input_proj = nn.Linear(n_mfcc, d_model) # why
-        self.rope = RotaryPositionalEncoding(d_model) #how are parameters chosen like so
+        self.input_proj = nn.Linear(n_mfcc, d_model) 
+        self.rope = RotaryPositionalEncoding(d_model) 
 
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
@@ -55,13 +55,13 @@ class SmallTransformerSER(nn.Module):
             dim_feedforward=256,
             batch_first=True
         )
-        self.transformer = nn.TransformerEncoderLayer(encoder_layer, num_layers=num_layers)
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.classifier = nn.Linear(d_model, n_classes)
     
     def forward(self, x, mask):
         x = self.input_proj(x)
         x = self.rope(x)
-        encoded = self.transformer(x, scr_key_padding_mask=mask)
+        encoded = self.transformer(x, src_key_padding_mask=mask)
         pooled = encoded.mean(dim=1)
 
         return self.classifier(pooled)

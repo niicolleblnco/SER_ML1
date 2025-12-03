@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-from loady import build_df_from_ravdess
+from load import build_df_from_ravdess
 from features import SERAudioDataset
 from sklearn.manifold import TSNE
 

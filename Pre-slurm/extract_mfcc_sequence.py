@@ -3,7 +3,7 @@ import torchaudio
 import torchaudio.transforms as T
 from tqdm import tqdm
 
-from loady import build_df_from_ravdess
+from load import build_df_from_ravdess
 
 DATA_ROOT = "crema"
 SAMPLE_RATE = 16000
@@ -58,7 +58,7 @@ def main():
     labels = []
 
     print("Extracting MFCC sequences...")
-    for idx, row in tqdm(df.iterrows(), total=len(df)):
+    for _, row in tqdm(df.iterrows(), total=len(df)):
         path = row["Path"]
         label = int(row["Emotion"])
 
