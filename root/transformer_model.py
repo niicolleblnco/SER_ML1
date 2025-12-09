@@ -41,7 +41,7 @@ class RotaryPositionalEncoding(nn.Module):
         return out
 
 class SmallTransformerSER(nn.Module):
-    def __init__(self, n_mfcc=20, d_model=128, n_heads=4, num_layers=2, n_classes=6):
+    def __init__(self, n_mfcc=20, d_model=128, n_heads=4, num_layers=2, n_classes=8):
         super().__init__()
         if d_model % 2 != 0:
             raise ValueError("d_model must be even for RoPE")

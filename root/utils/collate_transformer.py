@@ -1,7 +1,7 @@
 import torch
 import random
 
-CHUNK_LEN = 200
+CHUNK_LEN = 300
 
 def pad_and_mask(sequences, labels):
     lengths = [seq.shape[0] for seq in sequences]

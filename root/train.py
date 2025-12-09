@@ -5,17 +5,16 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import argparse
 from tqdm import tqdm
-import subprocess
 
 from transformer_model import SmallTransformerSER
-from collate_transformer import collate_transformer_train, collate_transformer_eval
-from split import stratified_splits
+from root.utils.collate_transformer import collate_transformer_train, collate_transformer_eval
+from root.utils.split import stratified_splits
 
 EPOCHS      = 40
 BATCH_SIZE  = 8
 LR          = 1e-3
 SEED        = 42
-N_CLASSES = 6
+N_CLASSES = 8
 
 def get_args():
     ap = argparse.ArgumentParser()
@@ -52,7 +51,7 @@ def main():
     os.makedirs(history_dir, exist_ok=True)
     writer = SummaryWriter(log_dir=args.outdir)
 
-    MFCC_PATH = "data/features/precomputed_mfcc.npz"
+    MFCC_PATH = "data/features/ravdess/precomputed_mfcc.npz"
     if not os.path.exists(MFCC_PATH):
         print("precomputed_mfcc.npz not found. Extracting MFCC sequences...")
     data = np.load(MFCC_PATH, allow_pickle=True)

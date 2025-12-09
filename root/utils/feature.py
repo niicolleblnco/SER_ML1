@@ -4,7 +4,7 @@ import numpy as np
 import torchaudio
 import torchaudio.transforms as T
 from tqdm import tqdm
-from load import build_df_from_crema
+from root.utils.load import build_df_from_ravdess
 
 def extract_mfcc(waveform, target_sr, win_ms, hop_ms, n_mels, n_mfcc):
     max_abs = waveform.abs().amax()
@@ -36,7 +36,7 @@ def extract_mfcc(waveform, target_sr, win_ms, hop_ms, n_mels, n_mfcc):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-root", type=str, required=True)
-    ap.add_argument("--out", type=str, default="data/features/precomputed_mfcc.npz")
+    ap.add_argument("--out", type=str, default="data/features/ravdess/precomputed_mfcc.npz")
     ap.add_argument("--target-sr", type=int, default=16000)
     ap.add_argument("--win-ms", type=int, default=25)
     ap.add_argument("--hop-ms", type=int, default=10)
@@ -48,7 +48,7 @@ def main():
     if outdir != "":
         os.makedirs(outdir, exist_ok=True)
 
-    df = build_df_from_crema(args.data_root)
+    df = build_df_from_ravdess(args.data_root)
     print(f"Extracting MFCCs from {len(df)} files...")
 
     mfcc_list = []
