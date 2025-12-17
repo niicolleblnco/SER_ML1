@@ -27,7 +27,7 @@ def main(data_root, epochs, outdir):
 
         subprocess.run([
             "python",
-            "train.py",
+            "run_pipeline.py",
             "--data-root", data_root,
             "--epochs", str(epochs),
             "--config", cfg_path

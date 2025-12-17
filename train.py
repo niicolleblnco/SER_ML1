@@ -19,7 +19,7 @@ def get_args():
     ap.add_argument("--outdir", type=str, default="runs/exp1")
     ap.add_argument("--batch_size", type=int, default=8)
     ap.add_argument("--lr", type=float, default=1e-3)
-    ap.add_argument("--mfcc_path", type=str, default="data/features/ravdess/precomputed_mfcc.npz")
+    ap.add_argument("--mfcc_path", type=str, default="data/features/precomputed_mfcc.npz")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--max_history", type=int, default=5)
     return ap.parse_args() 

@@ -11,14 +11,14 @@ def main():
 
     # 1. Extract MFCC
     print("Extracting MFCCs if needed...")
-    MFCC_PATH = "data/features/ravdess/precomputed_mfcc.npz"
+    MFCC_PATH = "data/features/precomputed_mfcc.npz"
 
     if not os.path.exists(MFCC_PATH):
         subprocess.run([
             "python",
-            "feature.py",
+            "utils/feature.py",
             "--data-root", args.data_root,
-            "--out", "data/features/ravdess/precomputed_mfcc.npz"
+            "--out", "data/features/precomputed_mfcc.npz"
         ], check=True)
  
     print("MFCC extraction done.")
