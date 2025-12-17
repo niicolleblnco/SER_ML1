@@ -6,10 +6,12 @@
 #SBATCH --time=12:00:00
 #SBATCH --output=logs/%x_%j.out
 
-source ~/.bashrc
+cd $SLURM_SUBMIT_DIR
+
+source /home/users/nblanco/miniconda3/etc/profile.d/conda.sh
 conda activate emotionenv
 
 python run_sweep.py \
-  --data-root /Users/nicolleblanco/Ser-trash/data \
+  --data-root /home/users/nblanco/data \
   --epochs 40 \
-  --outdir sweep_configs
+  --outdir sweep_configs 

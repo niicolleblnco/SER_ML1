@@ -6,6 +6,7 @@ data/
 *.npy
 *.pyc
 *.0
+*.json
 
 
 *.DS_Store
