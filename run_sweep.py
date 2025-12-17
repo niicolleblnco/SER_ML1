@@ -31,7 +31,7 @@ def main():
             os.makedirs(outdir, exist_ok=True)
 
             subprocess.run([
-                "python", "train",
+                "python", "train.py",
                 "--mfcc_path", MFCC_PATH,
                 "--lr", str(lr),
                 "--batch_size", str(bs),
