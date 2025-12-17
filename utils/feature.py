@@ -4,7 +4,7 @@ import numpy as np
 import torchaudio
 import torchaudio.transforms as T
 from tqdm import tqdm
-from root.utils.load import build_df_from_ravdess
+from utils.load import build_df_from_ravdess
 
 def extract_mfcc(waveform, target_sr, win_ms, hop_ms, n_mels, n_mfcc):
     max_abs = waveform.abs().amax()
