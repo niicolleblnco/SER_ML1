@@ -1,8 +1,8 @@
 import argparse
 import os
 import numpy as np
-import torchaudio
-torchaudio.set_audio_backend("soundfile")
+import soundfile as sf
+import torch
 import torchaudio.transforms as T
 from tqdm import tqdm
 from load import build_df_from_ravdess
@@ -60,8 +60,9 @@ def main():
         path = row["Path"]
         label = int(row["Emotion"])
 
-        waveform, orig_sr = torchaudio.load(path)
-
+        waveform_np, orig_sr = sf.read(path, always_2d=True)
+        waveform = torch.from_numpy(waveform_np.T).float()
+        
         if waveform.shape[0] > 1:
             waveform = waveform.mean(dim=0, keepdim=True)
 
