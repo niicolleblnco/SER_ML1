@@ -18,7 +18,7 @@ def main():
 
     print("Extracting MFCCs...")
     subprocess.run([
-        "python", "-m", "utils.feature",
+        "python", "utils.feature",
         "--data-root", args.data_root,
         "--out", args.mfcc_path
     ], check=True)
