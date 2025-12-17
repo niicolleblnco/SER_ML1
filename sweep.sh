@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=ser_sweep
-#SBATCH --gres=gpu:1
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --time=12:00:00
