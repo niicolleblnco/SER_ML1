@@ -13,7 +13,7 @@ def main():
 
     # 1. Ensure data exists (automatic, safe)
     subprocess.run([
-        "python", "scripts/data_prep.py",
+        "python", "data_prep.py",
         "--data-root", args.data_root,
         "--mfcc-path", MFCC_PATH
     ], check=True)
