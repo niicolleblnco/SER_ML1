@@ -2,6 +2,7 @@ import argparse
 import os
 import numpy as np
 import torchaudio
+torchaudio.set_audio_backend("soundfile")
 import torchaudio.transforms as T
 from tqdm import tqdm
 from load import build_df_from_ravdess
