@@ -62,6 +62,11 @@ def main():
     BATCH_SIZE = args.batch_size
     LR = args.lr
     MFCC_PATH = args.mfcc_path
+
+
+    if not os.path.exists(MFCC_PATH):
+        raise FileNotFoundError(f"MFCC file not found: {MFCC_PATH}")
+
     SEED = args.seed
     MAX_HISTORY = args.max_history
 
