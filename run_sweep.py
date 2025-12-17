@@ -6,6 +6,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-root", type=str, required=True)
     ap.add_argument("--epochs", type=int, default=40)
+    ap.add_argument("--exp-root", type=str, default="experiments")
     args = ap.parse_args()
 
     MFCC_PATH = "data/features/precomputed_mfcc.npz"
@@ -26,7 +27,7 @@ def main():
             if lr == 1e-3 and bs == 32:
                 continue
 
-            outdir = f"experiments/lr{lr}_bs{bs}"
+            outdir = os.path.join(args.exp_root, f"lr{lr}_bs{bs}")
             os.makedirs(outdir, exist_ok=True)
 
             subprocess.run([

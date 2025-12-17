@@ -14,4 +14,4 @@ conda activate emotionenv
 python run_sweep.py \
   --data-root /home/users/nblanco/data \
   --epochs 40 \
-  --outdir sweep_configs 
+  --exp-root sweep_configs
