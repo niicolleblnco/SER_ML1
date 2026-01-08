@@ -107,6 +107,10 @@ def main():
     args = get_args()
     os.makedirs(args.outdir, exist_ok=True)
 
+    # TensorBoard logging directory inside the run folder
+    tensorboard_dir = os.path.join(args.outdir, "tensorboard")
+    os.makedirs(tensorboard_dir, exist_ok=True)
+
     # Save config for reproducibility
     config_path = os.path.join(args.outdir, "config.json")
     with open(config_path, "w") as f:
@@ -205,7 +209,7 @@ def main():
     criterion = nn.CrossEntropyLoss()
 
     # TensorBoard logging
-    writer = SummaryWriter(log_dir=args.outdir)
+    writer = SummaryWriter(log_dir=tensorboard_dir)
 
     # Directory storing multiple best checkpoints over time
     history_dir = os.path.join(args.outdir, "versions")
